@@ -204,7 +204,6 @@ def main():
     clock = pygame.time.Clock()
 
     machine_files = [f for f in os.listdir(".") if f.endswith('.png')]
-    # These positions will now correctly be passed to each machine.
     machine_y_positions = {
         'dumptruck': 360,
         'bulldozer': 475,
@@ -213,8 +212,7 @@ def main():
         'cranetruck': 100  # Changing cranetruck's value will now affect its spawn position.
     }
     
-    toggled_machines = [None] * 9  # Storage for active machines
-    selected_index = -1
+    active_machines = []  # List to hold all active machine instances
     random_y_mode = False  # Initial mode
 
     running = True
@@ -232,7 +230,7 @@ def main():
                     random_y_mode = not random_y_mode
                     print(f"Random Y Spawn Mode: {'ON' if random_y_mode else 'OFF'}")
 
-                # Load a machine based on keys 1-9.
+                # Create a new machine instance for keys 1-9 regardless of existing ones.
                 if K_1 <= event.key <= K_9:
                     idx = event.key - K_1
                     if idx < len(machine_files):
@@ -240,46 +238,35 @@ def main():
                         y_pos = machine_y_positions.get(machine_name, 100)
                         print(f"y_pos for {machine_name}: {y_pos}")
                         
-                        if toggled_machines[idx] is None:
-                            toggled_machines[idx] = Machine(
-                                os.path.join(".", machine_files[idx]),
-                                screen_width, screen_height,
-                                y_pos
-                            )
-                            # If random_y_mode is active, you can randomize the y-position further if desired.
-                            if random_y_mode:
-                                if toggled_machines[idx].machine_name == "cranetruck":
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 100, y_pos)
-                                elif toggled_machines[idx].machine_name == "cementmixer":
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 565, y_pos)
-                                elif toggled_machines[idx].machine_name == "excavator":
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 375, y_pos)
-                                elif toggled_machines[idx].machine_name == "bulldozer":
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 475, y_pos)
-                                elif toggled_machines[idx].machine_name == "dumptruck":
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 360, y_pos)
-                                else:
-                                    toggled_machines[idx].rect.y = random.randint(y_pos - 100, y_pos)
-                                print(f"toggled_machines for {machine_name}: {toggled_machines[idx].rect.y}")
+                        new_machine = Machine(
+                            os.path.join(".", machine_files[idx]),
+                            screen_width, screen_height,
+                            y_pos
+                        )
 
-                            selected_index = idx
-                        else:
-                            toggled_machines[idx] = None
-                            if selected_index == idx:
-                                selected_index = -1
+                        if random_y_mode:
+                            if new_machine.machine_name == "cranetruck":
+                                new_machine.rect.y = random.randint(y_pos - 100, y_pos)
+                            elif new_machine.machine_name == "cementmixer":
+                                new_machine.rect.y = random.randint(y_pos - 565, y_pos)
+                            elif new_machine.machine_name == "excavator":
+                                new_machine.rect.y = random.randint(y_pos - 375, y_pos)
+                            elif new_machine.machine_name == "bulldozer":
+                                new_machine.rect.y = random.randint(y_pos - 475, y_pos)
+                            elif new_machine.machine_name == "dumptruck":
+                                new_machine.rect.y = random.randint(y_pos - 360, y_pos)
+                            else:
+                                new_machine.rect.y = random.randint(y_pos - 100, y_pos)
+                            print(f"New instance of {machine_name} spawned at y: {new_machine.rect.y}")
+                        
+                        active_machines.append(new_machine)
  
-        # Update and draw machines.
-        for i, m in enumerate(toggled_machines):
-            if m is not None:
-                done = m.update()
-                if done:
-                    toggled_machines[i] = None
-                    if selected_index == i:
-                        selected_index = -1
-                else:
-                    m.draw(screen)
-
-        # [Overlay and instructions drawing code remain unchanged]
+        # Update and draw all active machines
+        for m in active_machines[:]:
+            if m.update():
+                active_machines.remove(m)
+            else:
+                m.draw(screen)
 
         pygame.display.flip()
         clock.tick(60)
